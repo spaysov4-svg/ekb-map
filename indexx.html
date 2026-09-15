@@ -1,7 +1,4 @@
-    const looksLikePage =
-      /\.(html?|php)(?:[?#]|$)/i.test(u) ||
-      /\/search(?:[/?]|$)/i.test(u) ||
-      /\/(maps|map|reviews?)(?:[/?]|$)/i.test(u);<!doctype html>
+<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -20,76 +17,6 @@ body{background:var(--pale);color:var(--ink)}
 /* Розовый фильтр на тайлы карты */
 .leaflet-tile-pane {
   filter: sepia(0.35) hue-rotate(285deg) saturate(2.1) brightness(1.03) contrast(0.95);
-}
-
-/* Верхняя панель */
-.header-card{
-  position:absolute;
-  top:12px;
-  left:12px;
-  right:12px;
-  z-index:1000;
-  background:rgba(255,245,249,0.94);
-  border:1.5px solid #ff9ebb;
-  border-radius:20px;
-  box-shadow:0 8px 25px rgba(216,17,89,0.18);
-  backdrop-filter:blur(12px);
-  padding:12px 14px;
-}
-.header-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:8px;
-}
-.title{
-  font-size:20px;
-  font-weight:900;
-  color:var(--hot);
-  letter-spacing:-0.3px;
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-.badge{
-  background:var(--soft-pink);
-  color:var(--hot);
-  font-size:11px;
-  font-weight:700;
-  padding:3px 8px;
-  border-radius:12px;
-  border:1px solid #ffaec7;
-}
-.search-row{
-  display:flex;
-  gap:8px;
-}
-.search-row input{
-  flex:1;
-  padding:10px 14px;
-  border:1.5px solid #ffb3cb;
-  border-radius:14px;
-  background:#fff;
-  color:var(--ink);
-  font-size:14px;
-  outline:none;
-}
-.search-row input:focus{
-  border-color:var(--hot);
-}
-.btn{
-  border:0;
-  border-radius:14px;
-  padding:10px 18px;
-  background:linear-gradient(135deg,#ff4d8b,#d81159);
-  color:#fff;
-  font-weight:700;
-  font-size:14px;
-  cursor:pointer;
-  box-shadow:0 4px 12px rgba(216,17,89,0.3);
-}
-.btn:active{
-  transform:scale(0.96);
 }
 
 /* Маркеры */
@@ -172,17 +99,6 @@ body{background:var(--pale);color:var(--ink)}
 </style>
 </head>
 <body>
-
-<div class="header-card">
-  <div class="header-row">
-    <div class="title">🌸 Екатеринбург</div>
-    <div class="badge" id="count">50 объектов</div>
-  </div>
-  <div class="search-row">
-    <input id="search" placeholder="Поиск арт-объекта..." autocomplete="off">
-    <button class="btn" id="findBtn">Найти</button>
-  </div>
-</div>
 
 <div id="map"></div>
 
@@ -789,16 +705,6 @@ arts.forEach(item=>{
   marker._artName=item.name.toLowerCase();
   marker.addTo(map); markers.push(marker);
 });
-
-function doSearch(){
-  const val=document.getElementById('search').value.trim().toLowerCase();
-  if(!val)return;
-  const found=markers.find(m=>m._artName.includes(val));
-  if(found){map.setView(found.getLatLng(),16,{animate:true});found.openPopup();}
-  else alert('Объект не найден!');
-}
-document.getElementById('findBtn').onclick=doSearch;
-document.getElementById('search').onkeydown=e=>{if(e.key==='Enter')doSearch();};
 </script>
 </body>
 </html>
