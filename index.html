@@ -156,6 +156,7 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
+    margin-bottom:14px;
   }
   .me-row{display:flex;align-items:center;gap:9px;min-width:0;}
   .me-name{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -165,6 +166,36 @@
     white-space:nowrap;
   }
   .logout-btn:hover{color:var(--danger);background:rgba(226,102,92,0.08);}
+
+  .search-wrap{position:relative;}
+  .search-wrap input{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px 12px 10px 34px;
+    border-radius:9px;
+    font-size:14px;
+    outline:none;
+  }
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-icon{
+    position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    width:15px;height:15px;color:var(--text-dim);pointer-events:none;
+  }
+  .search-results{
+    position:absolute;
+    left:16px;right:16px;top:100%;
+    margin-top:6px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    max-height:260px;
+    overflow-y:auto;
+    z-index:20;
+    box-shadow:0 12px 28px rgba(0,0,0,0.35);
+  }
+  .search-results:empty{display:none;}
 
   .list-scroll{flex:1;overflow-y:auto;padding:6px 8px;}
 
@@ -339,9 +370,11 @@
 
   .scroll-thin::-webkit-scrollbar,
   .list-scroll::-webkit-scrollbar,
-  .messages::-webkit-scrollbar{width:7px;}
+  .messages::-webkit-scrollbar,
+  .search-results::-webkit-scrollbar{width:7px;}
   .list-scroll::-webkit-scrollbar-thumb,
-  .messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+  .messages::-webkit-scrollbar-thumb,
+  .search-results::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
 </style>
 </head>
 <body>
@@ -409,14 +442,21 @@
         </div>
         <button class="logout-btn" id="logoutBtn">Выйти</button>
       </div>
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="searchInput" placeholder="Найти по никнейму" autocomplete="off">
+        <div class="search-results" id="searchResults"></div>
+      </div>
     </div>
     <div class="list-scroll" id="chatList">
-      <div class="empty-hint">Пока нет диалогов.</div>
+      <div class="empty-hint">Пока нет диалогов.<br>Найдите пользователя по нику, чтобы начать переписку.</div>
     </div>
   </div>
 
   <div class="chat-panel">
-    <div id="chatHeaderEmpty" class="empty-chat">Выберите чат слева</div>
+    <div id="chatHeaderEmpty" class="empty-chat">Выберите чат слева или найдите собеседника по никнейму</div>
 
     <div id="chatActive" class="hidden" style="display:contents;">
       <div class="chat-header">
@@ -611,6 +651,57 @@ document.getElementById('logoutBtn').addEventListener('click', ()=>{
 });
 
 /* =========================================================
+   SEARCH USERS BY NICKNAME (prefix search)
+   ========================================================= */
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+let searchTimer = null;
+
+searchInput.addEventListener('input', ()=>{
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if (!q){ searchResults.innerHTML = ''; return; }
+  searchTimer = setTimeout(()=>runSearch(q), 250);
+});
+
+document.addEventListener('click', (e)=>{
+  if (!e.target.closest('.search-wrap')) searchResults.innerHTML = '';
+});
+
+async function runSearch(prefix){
+  try{
+    const snap = await db.ref('users')
+      .orderByKey()
+      .startAt(prefix)
+      .endAt(prefix + '\uf8ff')
+      .limitToFirst(20)
+      .get();
+    const val = snap.val() || {};
+    const names = Object.keys(val).filter(n => n !== currentUser);
+    if (!names.length){
+      searchResults.innerHTML = '<div class="empty-hint">Никого не найдено</div>';
+      return;
+    }
+    searchResults.innerHTML = '';
+    names.forEach(name=>{
+      const row = document.createElement('div');
+      row.className = 'person-row';
+      row.innerHTML = `
+        <div class="avatar" style="background:${colorFor(name)}">${initialFor(name)}</div>
+        <div><div class="person-name">${escapeHtml(name)}</div></div>`;
+      row.addEventListener('click', ()=>{
+        searchInput.value = '';
+        searchResults.innerHTML = '';
+        openChat(name);
+      });
+      searchResults.appendChild(row);
+    });
+  }catch(err){
+    searchResults.innerHTML = '<div class="empty-hint">Ошибка поиска</div>';
+  }
+}
+
+/* =========================================================
    CHAT LIST (userChats/{me})
    ========================================================= */
 function listenChatList(){
@@ -625,7 +716,7 @@ function renderChatList(map){
   const el = document.getElementById('chatList');
   const names = Object.keys(map);
   if (!names.length){
-    el.innerHTML = '<div class="empty-hint">Пока нет диалогов.</div>';
+    el.innerHTML = '<div class="empty-hint">Пока нет диалогов.<br>Найдите пользователя по нику, чтобы начать переписку.</div>';
     return;
   }
   el.innerHTML = '';
